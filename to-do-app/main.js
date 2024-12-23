@@ -24,6 +24,16 @@ const taskList = document.querySelector("#tasks-list");
 const toDoForm = document.querySelector("#todo-form");
 const toDoInput = document.querySelector("#todo-input");
 
+// Tối ưu hàm check trùng lặp
+// những giá trị k nằm sẵn trong hàm, tách riêng thành tham số trong hàm
+function isDuplicateTask(newTitle, excludeIndex = -1) {
+    const checkDuplicate = tasks.some((task, index) => 
+        task.title.toLowerCase() === newTitle.toLowerCase() && 
+        excludeIndex !== index
+    );
+    return checkDuplicate;
+}
+
 // B6: Làm thêm tính năng chỉnh sửa
 // B6.1: Bắt sự kiện onclick thẻ ul (tính chất của Bubble Event)
 function handleTaskActions (e) {
@@ -39,7 +49,24 @@ function handleTaskActions (e) {
     // B6.2 Kiểm tra 3 nút ng dùng bấm vào (e.target)
     if (e.target.closest(".edit")) {
         // B6.3: Bật prompt cho phép nhập công việc mới
-        const newTitle = prompt("Enter new task ...", task.title);
+        let newTitle = prompt("Enter new task ...", task.title);
+        // check khi cancel prompt
+        if(newTitle === null) return;
+        // check khi ng dùng k nhập gì hoặc nhập toàn khoảng trắng
+        newTitle = newTitle.trim()
+        if(!newTitle) {
+            alert("Task title is not empty!");
+            return;
+        }
+        // check khi công việc trùng lặp => dùng phương thức some so sánh với newTitle. Quan trọng nhất là phải loại trừ chính dòng đang sửa.
+        // const checkDuplicate = tasks.some((task, index) => 
+        //     task.title.toLowerCase() === newTitle.toLowerCase() && 
+        //     taskIndex !== index
+        // );
+        if(isDuplicateTask(newTitle, taskIndex)) {
+            alert("Task with this title has already exist. Please enter a different task!")
+            return;
+        }
         // gán giá trị từ prompt cho task
         task.title = newTitle;
         renderTask(); // gọi lại để cập nhật giao diện
@@ -49,6 +76,7 @@ function handleTaskActions (e) {
     if (e.target.closest(".done")) {
         task.completed = !task.completed;
         renderTask();
+        return;
     }
     // B8: Xây dựng chức năng xóa công việc => tương tác với mảng (thêm là push hoặc unshift, xóa dùng splice vì ở đây mình sẽ k biết xóa từ phần từ nào-chính là chỉ số start trong phương thức)
     if (e.target.closest(".delete")) {
@@ -78,9 +106,15 @@ function addTask (e) {
         alert("Please enter a new task");
         return; // thoát hàm tránh chạy logic bên dưới
     }
+    // dùng phương thức some để kiểm tra xem trong task có trùng với value nhập vào không
+    // const isDuplicate = tasks.some(task => task.title.toLowerCase() === value.toLowerCase());
+
+    if(isDuplicateTask(value)) {
+        alert("Please enter other task");
+        return;
+    }
 
     // đưa công việc mới vào bên trong danh sách công việc
-
     tasks.push(
         {
             title: value,
@@ -99,6 +133,10 @@ function addTask (e) {
 // Vô hiệu hóa sự kiện mặc định khi nhấn chuôt: lấy ra #button, bắt sự kiện mousedown, dùng preventDefault();
 
 function renderTask() {
+    if(!tasks.length) {
+        taskList.innerHTML = `<li class="empty-message">No Task Available...</li>`;
+        return;
+    }
     const html = tasks
         .map(
             (task, index) => `
@@ -121,6 +159,8 @@ function renderTask() {
 }
 renderTask(); // gọi hàm để code chạy ngay khi có sẵn dữ liệu
 
-toDoForm.addEventListener('submit', addTask);
+toDoForm.addEventListener('submit', addTask); // xử lý hành động thêm task
 
 taskList.addEventListener ('click', handleTaskActions); // xử lý hành động task
+
+// Tìm hiểu: Định dạng dữ liệu JSON, localStorage
