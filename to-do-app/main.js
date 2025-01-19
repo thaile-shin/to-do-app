@@ -1,45 +1,42 @@
-// Do công việc được thể hiện dưới dạng danh sách => Array
+// lấy dữ liệu từ localStorage để render ra giao diện, nếu chưa có dữ liệu mặc định trả về mảng rỗng (dùng toán tử nullish coalescing)
+const tasks = JSON.parse(localStorage.getItem("tasks")) ?? [];
 
-const tasks = JSON.parse(localStorage.getItem("tasks")) ?? []; // lấy dữ liệu từ localStorage để render ra giao diện, nếu chưa có dữ liệu mặc định trả về mảng rỗng (dùng toán tử nullish coalescing)
+// Truy cập vào các phần tử trong DOM
+const taskList = document.querySelector("#tasks-list"); // Danh sách công việc
+const toDoForm = document.querySelector("#todo-form"); // Form thêm công việc
+const toDoInput = document.querySelector("#todo-input"); // Input để nhập tên công việc
 
-// B3: đưa vào trong task-list
-const taskList = document.querySelector("#tasks-list");
-// B5: Làm thêm chức năng thêm công việc, mỗi lần thêm công việc sẽ push dữ liệu vào trong tasks
-// 5.1: Lấy thẻ form và bắt sự kiện Submit
-// 5.2: Lấy phần tử input để lấy ra dữ liệu nhập từ người dùng
-const toDoForm = document.querySelector("#todo-form");
-const toDoInput = document.querySelector("#todo-input");
+// Hàm để escape HTML nhằm ngăn ngừa XSS
+function escapeHTML(html) {
+    const div = document.createElement("div");
+    div.innerText = html; // Gán nội dung vào thẻ div để tự động escape các ký tự HTML
+    return div.innerHTML; // Trả về nội dung đã được escape
+}
 
-// Tối ưu hàm check trùng lặp
-// những giá trị k nằm sẵn trong hàm, tách riêng thành tham số trong hàm
+// Kiểm tra xem tiêu đề công việc mới có bị trùng lặp không
 function isDuplicateTask(newTitle, excludeIndex = -1) {
     const checkDuplicate = tasks.some(
         (task, index) =>
-            task.title.toLowerCase() === newTitle.toLowerCase() &&
-            excludeIndex !== index
+            task.title.toLowerCase() === newTitle.toLowerCase() && // So sánh không phân biệt chữ hoa/thường
+            excludeIndex !== index // Loại trừ công việc đang chỉnh sửa
     );
     return checkDuplicate;
 }
 
-// tạo hàm lưu dữ liệu
+// Lưu danh sách công việc vào localStorage
 function saveTasks() {
     localStorage.setItem("tasks", JSON.stringify(tasks));
 }
 
-// B6: Làm thêm tính năng chỉnh sửa
-// B6.1: Bắt sự kiện onclick thẻ ul (tính chất của Bubble Event)
+// Xử lý các hành động trên công việc (sửa, đánh dấu hoàn thành, xóa)
 function handleTaskActions(e) {
-    // B6.4: Muốn có nội dung điền sẵn, ta lấy chỉ số trong mảng tasks sau đó truy cập thuộc tính title trong phần tử. Vấn đề đặt ra là làm sao lấy đc chỉ số của phần tử trong mảng tasks => tham số thứ 2 của callbackFn là index.
-    // tự tạo 1 attribute (data-index)
-    // B6.5: lấy phần tử li cha từ phần tử con phát ra sự kiện => dùng phương thức closest
-    const taskItem = e.target.closest(".task-item");
-    if(!taskItem) return;
-    // B6.6: từ li tag => getAttribute sẽ lấy ra đc index + ép kiểu sang số.
-    // const taskIndex = +taskItem.getAttribute("data-index");
-    const taskIndex = +taskItem.dataset.index;
-    const task = tasks[taskIndex];
+    const taskItem = e.target.closest(".task-item"); // Tìm công việc tương ứng với nút được bấm
+    if (!taskItem) return;
 
-    // B6.2 Kiểm tra 3 nút ng dùng bấm vào (e.target)
+    const taskIndex = +taskItem.dataset.index; // Lấy chỉ mục của công việc
+    const task = tasks[taskIndex]; // Lấy công việc từ danh sách
+
+    // Sửa tiêu đề công việc
     if (e.target.closest(".edit")) {
         // B6.3: Bật prompt cho phép nhập công việc mới
         let newTitle = prompt("Enter new task ...", task.title);
@@ -51,31 +48,27 @@ function handleTaskActions(e) {
             alert("Task title is not empty!");
             return;
         }
-        // check khi công việc trùng lặp => dùng phương thức some so sánh với newTitle. Quan trọng nhất là phải loại trừ chính dòng đang sửa.
-        // const checkDuplicate = tasks.some((task, index) =>
-        //     task.title.toLowerCase() === newTitle.toLowerCase() &&
-        //     taskIndex !== index
-        // );
+
         if (isDuplicateTask(newTitle, taskIndex)) {
             alert(
                 "Task with this title has already exist. Please enter a different task!"
-            );
+            ); // cảnh báo nếu tiêu đề trùng lặp
             return;
         }
-        // gán giá trị từ prompt cho task
-        task.title = newTitle;
-        saveTasks();
-        renderTask(); // gọi lại để cập nhật giao diện
 
-        // B7: Xây dựng chức năng đánh dấu hoàn thành/chưa hoàn thành
+        task.title = newTitle; // cập nhật tiêu đề mới công việc
+        saveTasks(); // lưu danh sách vào localStorage
+        renderTask(); // Hiển thị danh sách công việc
     }
+
+    // đánh dấu hoàn thành/ chưa hoàn thành
     if (e.target.closest(".done")) {
-        task.completed = !task.completed;
+        task.completed = !task.completed; // đảo trạng thái hoàn thành
         renderTask();
         saveTasks();
         return;
     }
-    // B8: Xây dựng chức năng xóa công việc => tương tác với mảng (thêm là push hoặc unshift, xóa dùng splice vì ở đây mình sẽ k biết xóa từ phần từ nào-chính là chỉ số start trong phương thức)
+    // Xóa công việc
     if (e.target.closest(".delete")) {
         if (confirm(`Are you sure you want to delete '${task.title}' ?`)) {
             tasks.splice(taskIndex, 1);
@@ -84,78 +77,60 @@ function handleTaskActions(e) {
         }
     }
 }
-
-// B2: Sau khi đưa ra đc cấu trúc dữ liệu => render ra giao diện
-
-// B2.1: Chuyển Array sang chuỗi html, có cấu trúc giống file html => dùng Array.map() => trả về mảng có html có n phần tử, từ mảng trả về dùng Array.join() để trả về chuỗi
-
-// B2.2: Sửa nhiệm vụ và trạng thái hoàn thành từ dữ liệu ở mảng Tasks => dùng nội suy, tiếp theo kiểm tra trạng thái Complete (dùng toán từ 3 ngôi)
-
-// B4: thêm class "completed khi hoàn thành (toán tử 3 ngôi)"
-
-// bắt sự kiện Submit ở form
+// thêm công việc mới
 function addTask(e) {
-    // vô hiệu hóa mặc định của trình duyệt khi submit
-    e.preventDefault();
-    // lấy dữ liệu người dùng nhập vào input, loại bỏ khoảng trắng thừa ở đầu chuỗi và cuối chuỗi
-    const value = toDoInput.value.trim();
+    e.preventDefault(); // vô hiệu hóa mặc định của trình duyệt khi submit
+    const value = toDoInput.value.trim(); // lấy giá trị input, loại bỏ khoảng trắng thừa.
 
     if (!value) {
         alert("Please enter a new task");
-        return; // thoát hàm tránh chạy logic bên dưới
-    }
-    // dùng phương thức some để kiểm tra xem trong task có trùng với value nhập vào không
-    // const isDuplicate = tasks.some(task => task.title.toLowerCase() === value.toLowerCase());
+        return;
+    } // Cảnh báo nếu input rỗng
 
     if (isDuplicateTask(value)) {
         alert("Please enter other task");
         return;
-    }
+    } // cảnh báo nếu trùng lặp
 
     // đưa công việc mới vào bên trong danh sách công việc
     tasks.push({
         title: value,
         completed: false,
     });
-    // Đưa code bài trước lên sau khi push công việc để nó render ra giao diện
+    renderTask(); // hiển thị danh sách công việc
+    saveTasks(); // lưu vào localStorage
 
-    // re-render
-    renderTask();
-    saveTasks();
-
-    toDoInput.value = "";
+    toDoInput.value = ""; // xóa giá trị input sau khi submit
 }
-// lặp code => tạo hàm riêng
-
-// Vô hiệu hóa sự kiện mặc định khi nhấn chuôt: lấy ra #button, bắt sự kiện mousedown, dùng preventDefault();
-
+// Hàm hiển thị danh sách công việc
 function renderTask() {
     if (!tasks.length) {
-        taskList.innerHTML = `<li class="empty-message">No Task Available...</li>`;
+        taskList.innerHTML = `<li class="empty-message">No Task Available...</li>`; // Hiển thị thông báo nếu danh sách rỗng
         return;
     }
     const html = tasks
         .map(
-            (task, index) => `<li class="task-item ${
-                task.completed ? "completed" : ""
+            (task, index) => `
+            <li class="task-item ${
+                task.completed ? "completed" : "" // Thêm class "completed" nếu công việc đã hoàn thành
             }" data-index="${index}">
-            <span class="task-title">${task.title}</span>
-            <div class="task-action">
-                <button class="task-btn edit">Edit</button>
-                <button class="task-btn done">${
+                <span class="task-title">${escapeHTML(task.title)}</span> <!-- Escape tiêu đề công việc -->
+                <div class="task-action">
+                    <button class="task-btn edit">Edit</button> <!-- Nút sửa -->
+                    <button class="task-btn done">${
                     task.completed ? "Mark as undone" : "Mark as done"
-                }</button>
-                <button class="task-btn delete">Delete</button>
-            </div>
-        </li>`
+                }</button> <!-- Nút hoàn thành -->
+                    <button class="task-btn delete">Delete</button> <!-- Nút xóa -->
+                </div>
+            </li>`
         )
-        .join("");
-    taskList.innerHTML = html;
+        .join(""); // Kết hợp tất cả các phần tử thành một chuỗi HTML
+    taskList.innerHTML = html; // Chèn HTML vào danh sách
 }
-renderTask(); // gọi hàm để code chạy ngay khi có sẵn dữ liệu
 
-toDoForm.addEventListener("submit", addTask); // xử lý hành động thêm task
-
-taskList.addEventListener("click", handleTaskActions); // xử lý hành động task
-
-// Tìm hiểu: Định dạng dữ liệu JSON, localStorage
+// Lắng nghe sự kiện submit của form
+toDoForm.addEventListener("submit", addTask);
+// Lắng nghe sự kiện click trên danh sách công việc
+taskList.addEventListener("click", handleTaskActions);
+// Hiển thị danh sách công việc khi tải trang
+renderTask();
