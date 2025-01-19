@@ -9,7 +9,7 @@ const toDoInput = document.querySelector("#todo-input"); // Input để nhập t
 // Hàm để escape HTML nhằm ngăn ngừa XSS
 function escapeHTML(html) {
     const div = document.createElement("div");
-    div.innerText = html; // Gán nội dung vào thẻ div để tự động escape các ký tự HTML
+    div.innerText = html; // Gán nội dung vào thẻ div để tự động escape các ký tự HTML (html entities)
     return div.innerHTML; // Trả về nội dung đã được escape
 }
 
@@ -127,6 +127,52 @@ function renderTask() {
         .join(""); // Kết hợp tất cả các phần tử thành một chuỗi HTML
     taskList.innerHTML = html; // Chèn HTML vào danh sách
 }
+
+// Cách khác dùng createElement và appendChild.
+// function renderTask() {
+//     if(!tasks.length) {
+//         const emptyMessage = document.createElement("li");
+//         emptyMessage.className = "empty-message";
+//         emptyMessage.textContent = "No Task Available...";
+//         taskList.appendChild(emptyMessage);
+//         return;
+//     }
+
+//     const taskElements = tasks.map((task, index) => {
+//         const $ = document.createElement.bind(document)
+//         const taskItem = $('li');
+//         taskItem.className = `task-item ${task.completed ? "completed" : ""}`;
+//         taskItem.dataset.index = index;
+
+//         const taskTitle = $('span');
+//         taskTitle.className = 'task-title';
+//         taskTitle.innerText = task.title;
+//         taskItem.appendChild(taskTitle);
+
+//         const taskAction = $('div');
+//         taskAction.className = 'task-action';
+
+//         const taskBtnEdit = $('button');
+//         taskBtnEdit.className = 'task-btn edit';
+//         taskBtnEdit.textContent = 'Edit';
+//         taskAction.appendChild(taskBtnEdit);
+
+//         const taskBtnDone = $('button');
+//         taskBtnDone.className = `task-btn done`;
+//         taskBtnDone.textContent = `${task.completed ? "Mark as undone" : "Mark as done"}`;
+//         taskAction.appendChild(taskBtnDone);
+
+//         const taskBtnDelete = $('button');
+//         taskBtnDelete.className = `task-btn delete`;
+//         taskBtnDelete.textContent = 'Delete';
+//         taskAction.appendChild(taskBtnDelete);
+
+//         taskItem.appendChild(taskAction);
+//         return taskItem;
+//     });
+
+//     taskElements.forEach(taskElement => taskList.appendChild(taskElement));
+// }
 
 // Lắng nghe sự kiện submit của form
 toDoForm.addEventListener("submit", addTask);
